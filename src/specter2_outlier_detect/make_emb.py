@@ -44,4 +44,4 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     rowid = rowid[len("http://arxiv.org/abs/"):]
     rowid = rowid.replace("/", ":")
 
-    torch.save(embedding, f"../../data/emb/{settings.output_prefix}_{rowid}.pt")
+    torch.save(embedding.detach().cpu(), f"../../data/emb/{settings.output_prefix}_{rowid}.pt")
