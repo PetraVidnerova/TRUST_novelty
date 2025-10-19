@@ -5,7 +5,7 @@ from adapters import AutoAdapterModel
 import torch
 import tqdm
 
-from config import create_settings
+from utils.config import create_settings
 
 if len(sys.argv) > 1:
     cfg_file = sys.argv[1]
@@ -40,5 +40,8 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     output = model(**inputs)
     # # take the first token in the batch as the embedding
     embedding = output.last_hidden_state[:, 0, :]
+    rowid = row[settings.id_column_name]
+    rowid = rowid[len("http://arxiv.org/abs/"):]
+    rowid = rowid.replace("/", ":")
 
-    torch.save(embedding, f"emb/{settings.output_prefix}_{i}.pt")
+    torch.save(embedding, f"../../data/emb/{settings.output_prefix}_{rowid}.pt")

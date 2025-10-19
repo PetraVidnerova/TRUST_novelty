@@ -1,4 +1,4 @@
-INPUT_FILE=../novel_py/novelpy_data_sample.feather
+INPUT_FILE=../../data/novelpy/novelpy_data_test.feather
 ID_COLUMN_NAME=PMID
 ABSTRACT_COLUMN_NAME=abstract
 OUTPUT_PREFIX=novelpy_data
