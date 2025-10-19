@@ -69,7 +69,7 @@ def main(config_file, model):
         #     json.dump(result, f)
 
     result = [{ID: key, "novelty_score": value} for key, value in result.items()] 
-    pd.DataFrame(result).to_csv(f"{setting.output_prefix}_{model.replace('/', ':')}_result.csv")
+    pd.DataFrame(result).to_csv(f"../../results/{settings.output_prefix}_{model.replace('/', ':')}_result.csv")
 
 
 if __name__ == "__main__":
