@@ -46,13 +46,14 @@ clf = IsolationForest()
 clf.fit(docvecs)
 novelty_if = clf.score_samples(docvecs) * -1
 
+ID = settings.id_column_name
 
 result1 = pd.DataFrame()
-result1["id"] = rowids
+result1[ID] = rowids
 result1["score"] = novelty_lof 
 
 result2 = pd.DataFrame()
-result2["id"] = rowids
+result2[ID] = rowids
 result2["score"] = novelty_if
 
 result1.to_csv(f"{RESULTS}/{settings.output_prefix}_specter2_LOF_result.csv")
