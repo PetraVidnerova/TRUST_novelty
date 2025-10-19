@@ -1,7 +1,7 @@
 [project]
 name = "trust-novelty"
 version = "0.1.0"
-description = "Add your description here"
+description="We trust in ourselves, we believe in novelty."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
