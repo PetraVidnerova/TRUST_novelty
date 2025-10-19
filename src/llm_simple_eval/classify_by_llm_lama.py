@@ -1,6 +1,7 @@
 import os
 import sys 
 import json
+import pickle
 import tqdm
 import click
 import pandas as pd
@@ -9,7 +10,7 @@ import logging
 from pydantic import BaseModel, Field
 import instructor
 
-from config import create_settings
+from utils.config import create_settings
 
 instructions="""
 You are a scientific review assistant. For the abstract of scientific paper you are given, judge the novelty of the paper. Return the novelty score on the scale 0 to 9. The higher the score, the more novel the paper. 0 stands for non novel papers, 9 stands for highest novelty.
@@ -43,8 +44,8 @@ def main(config_file, model):
         
     client = instructor.from_provider(f"ollama/{model}")
 
-    backup_file = f"{settings.output_prefix}_score_result_{model.replace('/', ':')}.json"
-
+    backup_file = f"{settings.output_prefix}_score_result_{model.replace('/', ':')}.pickle"
+    
     if settings.input_file.endswith("feather"):
         df = pd.read_feather(settings.input_file)
     else:
@@ -55,15 +56,17 @@ def main(config_file, model):
 
     result = {}
     if os.path.exists(backup_file):
-        with open(backup_file, "r") as f:
-            result = json.load(f)
+        with open(backup_file, "rb") as f:
+            result = pickle.load(f)
         
     for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
         if row[ID] in result:
             continue
-        result[row[ID]] = eval_abstract(row[ABSTRACT], client) 
-        with open(backup_file, "w") as f:
-            json.dump(result, f) 
+        result[row[ID]] = eval_abstract(row[ABSTRACT], client)
+        with open(backup_file, "wb") as f:
+            pickle.dump(result, f)
+        # with open(backup_file, "w") as f:
+        #     json.dump(result, f)
 
     result = [{ID: key, "novelty_score": value} for key, value in result.items()] 
     pd.DataFrame(result).to_csv(f"{setting.output_prefix}_{model.replace('/', ':')}_result.csv")
