@@ -8,6 +8,7 @@ dependencies = [
     "click>=8.3.0",
     "instructor>=1.11.3",
     "pandas>=2.3.3",
+    "pyalex>=0.18",
     "pyarrow>=21.0.0",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
