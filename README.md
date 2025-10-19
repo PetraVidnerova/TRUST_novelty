@@ -1,6 +1,11 @@
 # COMMON SPACE FOR TRUST NOVELTY WORK
 
-- src ... source codes
-- data ... store data elsewhere, edit only README
-- old_mess ... will clean it soon
-- README.md ... this file
+📂 data  ... store data elsewhere, edit only README
+
+📂 notebooks ... jupyter notebooks to process results
+  
+📂 old_mess ... will clean it soon 🚧 
+
+📂 src  ... source codes
+  
+📄 README.md ... this file
