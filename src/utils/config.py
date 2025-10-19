@@ -1,3 +1,4 @@
+import sys 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,3 +13,10 @@ def create_settings(filename):
         model_config = SettingsConfigDict(env_file=filename, env_file_encoding="utf-8")
 
     return Settings()
+
+def load_settings():
+    if len(sys.argv) > 1:
+        cfg = create_settings(sys.argv[1])
+    else:
+        cfg = create_settings(".env")
+    return cfg
