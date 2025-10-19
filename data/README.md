@@ -11,7 +11,7 @@ List here where to download data.
     + columns: title, authors, id, published, summary, novelty
 + novelpy_sample
   - starting_point: `novelpy` package, `download_sample()`
-  - created dateset: novelpy_data_sample.feather [see 
+  - created dateset: novelpy_data_sample.feather  
     + columns: PMID, title, abstract, year   
   - created dataset: novelpy_foster_result.feather
     + columns: PMID, score
