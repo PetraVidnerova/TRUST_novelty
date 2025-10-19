@@ -11,5 +11,6 @@ dependencies = [
     "pyarrow>=21.0.0",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
+    "scikit-learn>=1.7.2",
     "tqdm>=4.67.1",
 ]
