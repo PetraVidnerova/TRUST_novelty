@@ -32,6 +32,12 @@ for filename in os.listdir(EMBDIR):
 docvecs = np.vstack(docvecs)
 print(docvecs.shape)
 
+
+#
+# TODO!!!!
+# use train/reference set and testset 
+#
+
 clf = LocalOutlierFactor(n_neighbors=10)
 clf.fit(docvecs)
 novelty_lof = clf.negative_outlier_factor_ * -1
