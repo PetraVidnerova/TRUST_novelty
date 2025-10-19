@@ -7,11 +7,14 @@ requires-python = ">=3.11"
 dependencies = [
     "click>=8.3.0",
     "instructor>=1.11.3",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.7",
     "pandas>=2.3.3",
     "pyalex>=0.18",
     "pyarrow>=21.0.0",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
     "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
     "tqdm>=4.67.1",
 ]
