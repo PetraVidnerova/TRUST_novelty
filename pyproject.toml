@@ -10,6 +10,7 @@ dependencies = [
     "jupyter>=1.1.1",
     "matplotlib>=3.10.7",
     "pandas>=2.3.3",
+    "pyalex>=0.18",
     "pyarrow>=21.0.0",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",

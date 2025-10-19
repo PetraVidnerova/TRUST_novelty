@@ -41,7 +41,8 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     # # take the first token in the batch as the embedding
     embedding = output.last_hidden_state[:, 0, :]
     rowid = row[settings.id_column_name]
-    rowid = rowid[len("http://arxiv.org/abs/"):]
-    rowid = rowid.replace("/", ":")
+    if settings.output_prefix == "arxiv_dataset":
+        rowid = rowid[len("http://arxiv.org/abs/"):]
+        rowid = rowid.replace("/", ":")
 
     torch.save(embedding.detach().cpu(), f"../../data/emb/{settings.output_prefix}_{rowid}.pt")
