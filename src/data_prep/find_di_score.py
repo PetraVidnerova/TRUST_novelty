@@ -1,6 +1,7 @@
 import os
 import sys 
 import json
+import pickle
 import tqdm
 import pandas as pd
 import logging 
@@ -30,7 +31,7 @@ if os.path.exists(id2alex_filename):
     with open(id2alex_filename, "r") as f:
         id2alex = json.load(f)
         
-result = {}
+result = dict()
         
 for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     orig_id = row[ID]
@@ -54,6 +55,9 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     di_values = list(di_scores.loc[di_scores["alex_id"].isin(alex_ids), "score"])
     if di_values:
         result[orig_id] = max(di_values)
+
+    with open("tmp_result.pickle", "wb") as f:
+        pickle.dump(result, f)
     
     
 result = [{ID: key, "novelty_score": value} for key, value in result.items()] 

@@ -5,14 +5,10 @@ from adapters import AutoAdapterModel
 import torch
 import tqdm
 
-from utils.config import create_settings
+from utils.config import load_settings
+from utils.utils import read_df
 
-if len(sys.argv) > 1:
-    cfg_file = sys.argv[1]
-else:
-    cfg_file = ".env" 
-
-settings = create_settings(cfg_file)
+settings = load_settings()
 
 # load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained('allenai/specter2_base', device_map="cuda")
@@ -24,14 +20,14 @@ model = AutoAdapterModel.from_pretrained('allenai/specter2_base', device_map="cu
 model.load_adapter("allenai/specter2", source="hf", load_as="specter2", set_active=True)
 model.to("cuda")
 
-if settings.input_file.endswith(".feather"):
-    df = pd.read_feather(settings.input_file)
-else:
-    df = pd.read_csv(settings.input_file)
+df = read_df(settings.input_file)
+
 
 ABSTRACT = settings.abstract_column_name 
 for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     # # concatenate title and abstract
+    if not row[ABSTRACT]:
+        continue
     text_batch = [row['title'] + tokenizer.sep_token + row[ABSTRACT]]
     # # preprocess the input
     inputs = tokenizer(text_batch, padding=True, truncation=True,
@@ -44,5 +40,5 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     if settings.output_prefix == "arxiv_dataset":
         rowid = rowid[len("http://arxiv.org/abs/"):]
         rowid = rowid.replace("/", ":")
-
+        
     torch.save(embedding.detach().cpu(), f"../../data/emb/{settings.output_prefix}_{rowid}.pt")
