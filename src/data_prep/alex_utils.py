@@ -1,4 +1,5 @@
 import pyalex
+import requests
 
 pyalex.config.email = "petra@cs.cas.cz"
 
@@ -40,4 +41,24 @@ def get_openalex_id_from_title(title):
 
 def get_url_for_doi(doi):
     res = pyalex.Works()["https://doi.org/" + doi]
-    print(res["primary_location"]["pdf_url"])
+    try:
+        return res["primary_location"]["pdf_url"]
+    except KeyError:
+        return None
+
+def get_url_for_pubmed(pubmed):
+
+    url = f"https://api.openalex.org/works/pmid:{pubmed}"
+    
+    res = requests.get(url)
+    if res.status_code == 200:
+        data = res.json()
+        try:
+            return data["primary_location"]["pdf_url"]
+        except KeyError:
+            return None
+        
+    else:
+        return None
+            
+
