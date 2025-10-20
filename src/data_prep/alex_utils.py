@@ -37,3 +37,7 @@ def get_openalex_id_from_title(title):
         
         results.append(paper["id"])
     return results
+
+def get_url_for_doi(doi):
+    res = pyalex.Works()["https://doi.org/" + doi]
+    print(res["primary_location"]["pdf_url"])
