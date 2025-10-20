@@ -1,3 +1,4 @@
+
 import os
 import time
 import tqdm 
@@ -13,7 +14,8 @@ df = read_df("../../data/cell/cell_papers_selected_novelty.parquet")
 
 
 for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
-    if os.path.exists(f"../../data/cell/PDF/{i}.pdf"):
+    pubmed_id = row["pubmed_id"]
+    if os.path.exists(f"../../data/cell/PDF/pubmed_{pubmed_id}.pdf"):
         continue
 
     doi = row["doi"]
@@ -21,7 +23,7 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
         continue
     print(f"Processing {doi} ... ", end="", flush=True)
     try:
-        doi2pdf.doi2pdf(doi, output=f"../../data/cell/PDF/{i}.pdf")
+        doi2pdf.doi2pdf(doi, output=f"../../data/cell/PDF/pubmed_{pubmed_id}.pdf")
     except doi2pdf.main.NotFoundError:
         print("File not found, skipping.")
         with open("file_not_found.txt", "a") as f:

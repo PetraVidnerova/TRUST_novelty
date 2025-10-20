@@ -10,9 +10,11 @@ with open("withdrawn.txt", "r") as f:
     lines = f.readlines()
     withdrawn_ids = list(map(int, lines))
 
-df = pd.read_csv('arxiv_dataset_all_info.csv')
+df = pd.read_csv('../../data/arxiv/arxiv_dataset_all_info.csv')
 
+# TODO fix to save with arxiv ids
 for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
+
     filename = f"PDF/{i}.pdf"
     if os.path.exists(filename):
         print(f"{i}: {filename} exists, skip")
