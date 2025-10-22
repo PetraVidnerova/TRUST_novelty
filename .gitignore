@@ -1,5 +1,6 @@
 data/*
 !data/README.md
+!data/*.sh
 results/*
 !results/README.md
 *~
