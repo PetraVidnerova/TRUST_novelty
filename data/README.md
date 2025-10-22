@@ -12,7 +12,6 @@ Petra's data/ directory is on [OwnCloud](https://owncloud.cesnet.cz/index.php/s/
   - created dataset: arxiv_dataset_all_info.csv  
     + columns: title, authors, id, published, summary, novelty
   - created dataset: directory with all PDF files, directory with TXT files (created from PDFs)
-    + na google drive se to nevejde, kam s tim?
 + novelpy_sample
   - starting_point: `novelpy` package, `download_sample()`
   - created dataset: novelpy_data_sample.feather  
