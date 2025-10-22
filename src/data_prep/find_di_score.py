@@ -7,6 +7,7 @@ import pandas as pd
 import logging 
 
 from alex_utils import clean_title, get_openalex_id_from_arxiv, get_openalex_id_from_title
+from alex_utils import get_openalex_id_from_pubmed
 from utils.config import load_settings
 from utils.utils import read_df
 
@@ -32,16 +33,33 @@ if os.path.exists(id2alex_filename):
         id2alex = json.load(f)
         
 result = dict()
-        
+if os.path.exists("tmp_result.pickle"):
+    with open("tmp_result.pickle", "rb") as f:
+        result = pickle.load(f)
+        print("result loaded")
+
+print(result)
+
 for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     orig_id = row[ID]
     title =  row["title"]
 
+    if orig_id in result:
+        print("computed already")
+        continue
+    print(orig_id)
+    
     if orig_id in id2alex:
         alex_ids = id2alex[orig_id]
     else:
         if cfg.output_prefix == "arxiv_dataset": 
             alex_ids = get_openalex_id_from_arxiv(arxiv_id)
+        elif cfg.output_prefix == "novelpy_data":
+            alex_id = get_openalex_id_from_pubmed(orig_id)
+            if alex_id is None:
+                alex_ids = None
+            else:
+                alex_ids = [alex_id]
         else:
             alex_ids = None
         if alex_ids is None:
@@ -55,6 +73,8 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
     di_values = list(di_scores.loc[di_scores["alex_id"].isin(alex_ids), "score"])
     if di_values:
         result[orig_id] = max(di_values)
+    else:
+        result[orig_id] = None
 
     with open("tmp_result.pickle", "wb") as f:
         pickle.dump(result, f)
