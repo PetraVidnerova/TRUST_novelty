@@ -4,7 +4,7 @@ from utils.utils import read_df
 from alex_utils import get_url_for_pubmed
 
     
-
+""" 
 df = read_df("../../data/cell/cell_papers_selected_novelty.parquet")
 
 
@@ -14,15 +14,36 @@ for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
         continue
     pdf_url = get_url_for_pubmed(pubmed_id)
 
-    assert pdf_url is not None
+    if pdf_url is None:
+        with open("pdf_url_not_found.txt", "a") as f:
+            print(pubmed_id, file=f)
+        continue
     
     with open("download_papers.html", "a") as f:
         print(
             f"<a href='{pdf_url}' download='pubmed_{pubmed_id}.pdf'> pubmed_{pubmed_id}.pdf </a><br>",
             file=f
         )
+ """
 
+with open("pdf_url_not_found.txt", "r") as f:
+    for line in f:
+        pubmed_id = line.strip()
+        if os.path.exists(f"../../data/cell/PDF/pubmed_{pubmed_id}.pdf"):
+            continue
+        pdf_url = get_url_for_pubmed(pubmed_id)
 
+        if pdf_url is None:
+            print(f"Still not found: {pubmed_id}")
+            continue
+        else:
+            print(f"Found now: {pubmed_id}")
+        
+        with open("download_papers.html", "a") as f:
+            print(
+                f"<a href='{pdf_url}' download='pubmed_{pubmed_id}.pdf'> pubmed_{pubmed_id}.pdf </a><br>",
+                file=f
+            )
     
     
 

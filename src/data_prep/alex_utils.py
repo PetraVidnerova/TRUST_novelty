@@ -49,16 +49,25 @@ def get_url_for_doi(doi):
 def get_url_for_pubmed(pubmed):
 
     url = f"https://api.openalex.org/works/pmid:{pubmed}"
-    
-    res = requests.get(url)
-    if res.status_code == 200:
-        data = res.json()
-        try:
-            return data["primary_location"]["pdf_url"]
-        except KeyError:
-            return None
-        
-    else:
-        return None
+
+    trials = 0
+    while trials < 10:
+        trials += 1
+        res = requests.get(url)
+        if res.status_code == 200:
+            data = res.json()
+            try:
+                if data["primary_location"]["pdf_url"] is None:
+                    
+                    for location in data["locations"]:
+                        if location["pdf_url"] is not None:
+                            print("Found alternative location for", pubmed)
+                            return location["pdf_url"]
+                    return None
+                else:
+                    return data["primary_location"]["pdf_url"]
+            except KeyError:
+                return None
             
+                
 
