@@ -69,7 +69,26 @@ def get_url_for_pubmed(pubmed):
             except KeyError:
                 return None
             
-                            
+
+
+def get_doi_for_pubmed(pubmed):
+    url = f"https://api.openalex.org/works/pmid:{pubmed}"
+
+    trials = 0
+    while trials < 10:
+        trials += 1
+        res = requests.get(url)
+        if res.status_code == 200:
+            data = res.json()
+            try:
+                if data["doi"] is None:
+                    return None
+                else:
+                    return data["doi"]
+            except KeyError:
+                return None
+            
+
 def get_openalex_id_from_pubmed(pubmed): 
     url = f"https://api.openalex.org/works/pmid:{pubmed}"
     
