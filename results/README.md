@@ -4,6 +4,8 @@
 what data storage want we use???
 
 
+<hr>
+
 ## Cell dataset
 
 ### Correlations between indicators (spearman)
@@ -21,6 +23,8 @@ what data storage want we use???
 | novelty_sum       |              |              |                     |               |                 | 0.284       |          | 1.0           | 0.941         |
 | new_finding       |              |              |                     |               |                 | 0.295       |          | 0.941         | 1.0           |
 
+
+<hr>
 
 ## Novelpy dataset
 
@@ -51,6 +55,8 @@ mean_pred ... average of my indicators (after normalization)
 | di_values_10years               |               |              | -0.105       |                     | -0.112                            |                |                      |             |             |            |               |             |            |           |              |            | 1.0                 |        |
 | mean                            | 0.228         | 0.15         | 0.159        |                     | 0.109                             |                |                      | 0.274       | 0.438       | 0.774      | 0.766         | 0.303       | 0.667      | 0.72      | 0.668        | 0.26       |                     | 1.0    |
 
+
+<hr>
 
 # ArXiv dataset
 
