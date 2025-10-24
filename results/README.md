@@ -2,3 +2,20 @@
 
 ! result files should not be placed on github, but on data storage
 what data storage want we use???
+
+
+## Cell dataset
+
+### Correlations between indicators (spearman)
+
+|                   | mistral:7b   | falcon3:7b   | specter2_LOF_n=20   | specter2_IF   | wangs_novelty   | citations   | dindex   | novelty_sum   | new_finding   |
+|:------------------|:-------------|:-------------|:--------------------|:--------------|:----------------|:------------|:---------|:--------------|:--------------|
+| mistral:7b        | 1.0          | 0.348        |                     |               | 0.131           |             | 0.224    |               |               |
+| falcon3:7b        | 0.348        | 1.0          |                     |               |                 |             |          |               |               |
+| specter2_LOF_n=20 |              |              | 1.0                 | 0.395         | 0.202           |             |          |               |               |
+| specter2_IF       |              |              | 0.395               | 1.0           | 0.129           |             |          |               |               |
+| wangs_novelty     | 0.131        |              | 0.202               | 0.129         | 1.0             |             | 0.193    |               |               |
+| citations         |              |              |                     |               |                 | 1.0         | -0.355   | 0.284         | 0.295         |
+| dindex            | 0.224        |              |                     |               | 0.193           | -0.355      | 1.0      |               |               |
+| novelty_sum       |              |              |                     |               |                 | 0.284       |          | 1.0           | 0.941         |
+| new_finding       |              |              |                     |               |                 | 0.295       |          | 0.941         | 1.0           |
