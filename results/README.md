@@ -8,6 +8,11 @@ what data storage want we use???
 + [ArXiv dataset](#arxiv-dataset) 
 
 
+**Indicators**:
++ mistral:7b, falcon3:7b, jean-luc:tiger-gemma-9b-v3:fp16 - direct evaluation by LLM
++ specter2_LOF_n=20 - LocalOutlierFactor on specter2 embeddings
++ specter2_IF  - IsolationForest on specter2 embeddings
+
 <hr>
 
 ## Cell dataset
