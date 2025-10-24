@@ -7,7 +7,7 @@ what data storage want we use???
 ## Cell dataset
 
 ### Correlations between indicators (spearman)
-(empty cells indicatio abs correlation < 0.1)
+(empty cells indicate abs correlation < 0.1)
 
 |                   | mistral:7b   | falcon3:7b   | specter2_LOF_n=20   | specter2_IF   | wangs_novelty   | citations   | dindex   | novelty_sum   | new_finding   |
 |:------------------|:-------------|:-------------|:--------------------|:--------------|:----------------|:------------|:---------|:--------------|:--------------|
