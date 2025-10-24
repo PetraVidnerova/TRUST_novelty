@@ -24,6 +24,7 @@ what data storage want we use???
 
 ## Novelpy dataset
 mean ... average of target indicators (after normalization)
+
 mean_pred ... average of my indicators (after normalization)
 
 |                                 | specter2_IF   | mistral:7b   | falcon3:7b   | foster   | specter2_LOF_n=20   | jean-luc:tiger-gemma-9b-v3:fp16   | specter2_LOF   | specter2_LOFcosine   | mean_pred   | mesh_uzzi   | mesh_lee   | mesh_foster   | mesh_wang   | c04_uzzi   | c04_lee   | c04_foster   | c04_wang   | di_values_10years   | mean   |
