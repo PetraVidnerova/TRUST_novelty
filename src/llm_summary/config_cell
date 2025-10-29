@@ -1,0 +1,4 @@
+INPUT_FILE=../../data/cell/cell_papers_selected_novelty.parquet
+ID_COLUMN_NAME=pubmed_id
+ABSTRACT_COLUMN_NAME=abstract
+OUTPUT_PREFIX=cell

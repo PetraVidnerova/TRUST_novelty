@@ -1,0 +1,5 @@
+INPUT_FILE=../../data/arxiv/arxiv_dataset_all_info.csv
+ID_COLUMN_NAME=id
+ABSTRACT_COLUMN_NAME=summary
+OUTPUT_PREFIX=arxiv_dataset
+TASK_NAME=arxiv
