@@ -1,48 +1,3 @@
-# Place for results
-
-! big result files should not be placed on github, but on data storage
-what data storage want we use???
-
-+ [Cell dataset](#cell-dataset)
-+ [Novelpy dataset](#novelpy-dataset)
-+ [ArXiv dataset](#arxiv-dataset) 
-
-
-**Indicators**:
-+ mistral:7b, falcon3:7b, jean-luc:tiger-gemma-9b-v3:fp16 - direct evaluation by LLM
-+ specter2_LOF_n=20 - LocalOutlierFactor on specter2 embeddings
-+ specter2_IF  - IsolationForest on specter2 embeddings
-
-<hr>
-
-## Cell dataset
-
-### Correlations between indicators (spearman)
-(empty cells indicate abs correlation < 0.1)
-
-|                   | mistral:7b   | falcon3:7b   | specter2_LOF_n=20   | specter2_IF   | wangs_novelty   | citations   | dindex   | novelty_sum   | new_finding   |
-|:------------------|:-------------|:-------------|:--------------------|:--------------|:----------------|:------------|:---------|:--------------|:--------------|
-| mistral:7b        | 1.0          | 0.348        |                     |               | 0.131           |             | 0.224    |               |               |
-| falcon3:7b        | 0.348        | 1.0          |                     |               |                 |             |          |               |               |
-| specter2_LOF_n=20 |              |              | 1.0                 | 0.395         | 0.202           |             |          |               |               |
-| specter2_IF       |              |              | 0.395               | 1.0           | 0.129           |             |          |               |               |
-| wangs_novelty     | 0.131        |              | 0.202               | 0.129         | 1.0             |             | 0.193    |               |               |
-| citations         |              |              |                     |               |                 | 1.0         | -0.355   | 0.284         | 0.295         |
-| dindex            | 0.224        |              |                     |               | 0.193           | -0.355      | 1.0      |               |               |
-| novelty_sum       |              |              |                     |               |                 | 0.284       |          | 1.0           | 0.941         |
-| new_finding       |              |              |                     |               |                 | 0.295       |          | 0.941         | 1.0           |
-
-
-<hr>
-
-## Novelpy dataset
-
-### Correlations between indicators (spearman)
-
-mean ... average of target indicators (after normalization)
-
-mean_pred ... average of my indicators (after normalization)
-
 |                                 | specter2_IF   | mistral:7b   | falcon3:7b   | specter2_LOF_n=20   | jean-luc:tiger-gemma-9b-v3:fp16   | specter2_LOF   | specter2_LOFcosine   | mean_pred   | mesh_uzzi   | mesh_lee   | mesh_foster   | mesh_wang   | c04_uzzi   | c04_lee   | c04_foster   | c04_wang   | di_values_10years   | mean   |
 |:--------------------------------|:--------------|:-------------|:-------------|:--------------------|:----------------------------------|:---------------|:---------------------|:------------|:------------|:-----------|:--------------|:------------|:-----------|:----------|:-------------|:-----------|:--------------------|:-------|
 | specter2_IF                     | 1.0           |              |              | -0.355              | -0.126                            | -0.29          | -0.272               | 0.666       | 0.215       | 0.225      | 0.179         |             | 0.192      | 0.185     | 0.11         |            |                     | 0.228  |
@@ -63,22 +18,3 @@ mean_pred ... average of my indicators (after normalization)
 | c04_wang                        |               |              |              | -0.11               |                                   | -0.101         |                      |             | 0.179       | 0.239      |               | 0.513       | 0.202      | 0.264     |              | 1.0        |                     | 0.26   |
 | di_values_10years               |               |              | -0.105       |                     | -0.112                            |                |                      |             |             |            |               |             |            |           |              |            | 1.0                 |        |
 | mean                            | 0.228         | 0.15         | 0.159        |                     | 0.109                             |                |                      | 0.274       | 0.438       | 0.774      | 0.766         | 0.303       | 0.667      | 0.72      | 0.668        | 0.26       |                     | 1.0    |
-
-
-<hr>
-
-# ArXiv dataset
-
-### Correlations between indicators (spearman)
-
-|                                 | specter2_LOFcosine   | specter2_LOF_n=20   | mistral:7b   | specter2_IF   |   jean-luc:tiger-gemma-9b-v3:fp16 | falcon3:7b   | specter2_LOF   | di_values_10years   | novelty   |
-|:--------------------------------|:---------------------|:--------------------|:-------------|:--------------|----------------------------------:|:-------------|:---------------|:--------------------|:----------|
-| specter2_LOFcosine              | 1.0                  | 0.92                | -0.202       | 0.267         |                            -0.172 | -0.149       | 0.995          |                     | 0.542     |
-| specter2_LOF_n=20               | 0.92                 | 1.0                 | -0.217       | 0.332         |                            -0.186 | -0.159       | 0.923          |                     | 0.543     |
-| mistral:7b                      | -0.202               | -0.217              | 1.0          |               |                             0.592 | 0.451        | -0.211         | -0.163              | -0.178    |
-| specter2_IF                     | 0.267                | 0.332               |              | 1.0           |                            -0.136 |              | 0.288          |                     | 0.201     |
-| jean-luc:tiger-gemma-9b-v3:fp16 | -0.172               | -0.186              | 0.592        | -0.136        |                             1     | 0.575        | -0.178         | -0.133              | -0.198    |
-| falcon3:7b                      | -0.149               | -0.159              | 0.451        |               |                             0.575 | 1.0          | -0.154         | -0.138              | -0.156    |
-| specter2_LOF                    | 0.995                | 0.923               | -0.211       | 0.288         |                            -0.178 | -0.154       | 1.0            |                     | 0.542     |
-| di_values_10years               |                      |                     | -0.163       |               |                            -0.133 | -0.138       |                | 1.0                 |           |
-| novelty                         | 0.542                | 0.543               | -0.178       | 0.201         |                            -0.198 | -0.156       | 0.542          |                     | 1.0       |
