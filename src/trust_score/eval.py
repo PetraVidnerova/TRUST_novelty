@@ -13,7 +13,10 @@ from utils import download_abstract, get_related_works, create_abstract, eat_pre
 from embeddings import Embeddings
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("[%(levelname)s (%(module)s)] %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 @retry(
     stop=stop_after_attempt(5),
@@ -51,7 +54,7 @@ class Evaluator():
             return result 
         else:
             # return emtpy directory 
-            return dir()
+            return dict()
 
 
         
@@ -210,7 +213,9 @@ class Evaluator():
             "message": "success" 
         }
             
-if __name__ == "__main__":
+def main():
+    logger.setLevel("DEBUG")
+
 
     evaluator = Evaluator("../../data/soutez/")
     
@@ -220,11 +225,22 @@ if __name__ == "__main__":
     #df = pd.read_csv("../../data/soutez/Metadata file COMBINED.csv")
     TASK = "cell"
     df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
-    
-    result = {} 
+
+    result_filename = Path(f"tmp_result_{TASK}.pkl")
+    if result_filename.exists():
+        with open(result_filename, "rb") as f:
+            main_result = pickle.load(f)
+        logger.info(f"Loaded existing results for {len(main_result)} items.")
+    else:   
+        logger.info("No existing results found, starting from the beginning.")
+        main_result = {} 
     
     for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
         pid = row["PaperProjectID"]
+
+        if pid in main_result:
+            continue
+
         doi = row[DOI]
         alexid = row[OPENALEXID]
         title = row["Title"]
@@ -237,9 +253,13 @@ if __name__ == "__main__":
 
         if result is None:
             result = {"score": -1.0, "titles_only": None, "message": "no_data"}
-        result[pid] = result
-
+        main_result[pid] = result
         print(pid, result["score"], result["titles_only"], result["message"])
+
         if i % 10 == 0:
             with open(f"tmp_result_{TASK}.pkl", "wb") as f:
-                pickle.dump(result, f)
+                pickle.dump(main_result, f)
+
+
+if __name__ == "__main__":
+    main()
