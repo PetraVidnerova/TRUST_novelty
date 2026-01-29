@@ -64,6 +64,9 @@ class Evaluator():
         OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
 
         alexid = eat_prefix(alexid)
+        if not alexid.startswith("W"):
+            logger.error(f"Invalid OpenAlex ID: {alexid}")
+            return None
 
         # Request ONLY the needed fields
         if include_abstract:
@@ -159,14 +162,13 @@ class Evaluator():
         for rel in related:
             results.append(self._cosine_similarity(target, rel))
         #result /= related.shape[0]
-        return min(results)
+        return max(results)
     
     def gather_data(self, alexid, title=None, abstract=None):
         
         if alexid in self.titles_abstracts:
             record =  self.titles_abstracts[alexid]
-            if record['titles_only'] == True:
-                self.titles_only = True
+            self.titles_only = record['titles_only']
             return record["title"], record["abstract"], record["titles_abstracts"]
         
         target_data = self._get_data_for_target(alexid,
@@ -255,7 +257,7 @@ def main():
     TASK = "cell"
     df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
-    result_filename = Path(f"tmp_result_{TASK}min.pkl")
+    result_filename = Path(f"tmp_result_{TASK}max.pkl")
     if result_filename.exists():
         with open(result_filename, "rb") as f:
             main_result = pickle.load(f)
@@ -286,7 +288,7 @@ def main():
         print(pid, result["score"], result["titles_only"], result["message"])
 
         if i % 10 == 0:
-            with open(f"tmp_result_{TASK}min.pkl", "wb") as f:
+            with open(f"tmp_result_{TASK}max.pkl", "wb") as f:
                 pickle.dump(main_result, f)
 
 
