@@ -39,19 +39,18 @@ class Evaluator():
 
     def __init__(self, datadir):
         # self load saved abstracts
-        #self.abstracts = self._load_abstracts(datadir) 
+        self.storage_path = Path(datadir) / "titles_abstracts.pickle"
+        self.titles_abstracts = self._load_abstracts(datadir) 
         self.emb_model = Embeddings()
-        
+        self.titles_only = False    
+
+
     def _load_abstracts(self, datadir):
-        filename = Path(datadir) / "abstracts.parquet"
-        if filename.exists():
-            df = pd.read_parquet(filename)[["PaperProjectID", "abstract"]].dropna()
-            result = (
-                df
-                .set_index("PaperProjectID")["abstract"]
-                .to_dict()
-            )
-            return result 
+        if self.storage_path.exists():
+            with open(self.storage_path, "rb") as f: 
+                titles_abstracts = pickle.load(f)
+            logger.info(f"Loaded {len(titles_abstracts)} saved titles and abstracts from {self.storage_path}")
+            return titles_abstracts
         else:
             # return emtpy directory 
             return dict()
@@ -151,22 +150,30 @@ class Evaluator():
     #             return title, target_abstract
 
     def _cosine_similarity(self, a: torch.Tensor, b: torch.Tensor):
-        return F.cosine_similarity(a.flatten(), b.flatten(), dim=0)
+        return F.cosine_similarity(a.flatten(), b.flatten(), dim=0).item()
 
     def overall_similarity(self, target, related):
-        result = 0
+
         target = target[0] 
+        results = []
         for rel in related:
-            result += self._cosine_similarity(target, rel)
-        result /= related.shape[0]
-        return result
+            results.append(self._cosine_similarity(target, rel))
+        #result /= related.shape[0]
+        return min(results)
     
-    def eval(self, pid, doi, alexid, title, abstract=None):
+    def gather_data(self, alexid, title=None, abstract=None):
+        
+        if alexid in self.titles_abstracts:
+            record =  self.titles_abstracts[alexid]
+            if record['titles_only'] == True:
+                self.titles_only = True
+            return record["title"], record["abstract"], record["titles_abstracts"]
+        
         target_data = self._get_data_for_target(alexid,
-                                                include_abstract=abstract is None)
+                                                    include_abstract=abstract is None)
 
         if target_data is None:
-            return None
+            return None, None, None
         target_title = title
         target_abstract = abstract if abstract is not None else target_data.get("abstract", None)
         if not isinstance(target_abstract, str):
@@ -175,7 +182,7 @@ class Evaluator():
 
         if related_works is None:
             # todo: find related works manualy based on topics
-            return None
+            return None, None, None 
 
         if target_abstract is None:
             self.titles_only = True
@@ -194,6 +201,7 @@ class Evaluator():
             # we use abstracts only if we have at least 5
             if n_abstracts < 5:
                 self.titles_only = True
+                print(f"Not enough abstracts ({n_abstracts}) for {alexid}, using titles only.")
             else:
                 #keep only those tuples where we have both of them (abstract is not None) 
                 related_titles_abstracts = zip(titles, abstracts)
@@ -202,12 +210,33 @@ class Evaluator():
         if self.titles_only:
             related_titles_abstracts = [(t, None) for t in titles]
 
-                
+        self.titles_abstracts[alexid] = {
+            "title": target_title,
+            "abstract": target_abstract,
+            "titles_abstracts": related_titles_abstracts,
+            "titles_only": self.titles_only
+        }
+        with open(self.storage_path, "wb") as f:
+            pickle.dump(self.titles_abstracts, f)
+
+        return target_title, target_abstract, related_titles_abstracts
+    
+    def eval(self, pid, doi, alexid, title, abstract=None):
+        target_title, target_abstract, related_titles_abstracts = self.gather_data(alexid, title=title, abstract=abstract)
+        
+        if target_title is None:
+            return {
+                "score": -1.0,
+                "n_related": 0,
+                "titles_only": None,
+                "message": "no_data"
+            }
+
         target_emb = self.emb_model.embed([(target_title, target_abstract)], titles_only=self.titles_only)
         related_embs = self.emb_model.embed(related_titles_abstracts, titles_only=self.titles_only)
         result = self.overall_similarity(target_emb, related_embs)
         return {
-            "score": 1.0 - result.item(),
+            "score": 1.0 - result,
             "n_related": len(related_titles_abstracts),
             "titles_only": self.titles_only,
             "message": "success" 
@@ -226,7 +255,7 @@ def main():
     TASK = "cell"
     df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
-    result_filename = Path(f"tmp_result_{TASK}.pkl")
+    result_filename = Path(f"tmp_result_{TASK}min.pkl")
     if result_filename.exists():
         with open(result_filename, "rb") as f:
             main_result = pickle.load(f)
@@ -257,7 +286,7 @@ def main():
         print(pid, result["score"], result["titles_only"], result["message"])
 
         if i % 10 == 0:
-            with open(f"tmp_result_{TASK}.pkl", "wb") as f:
+            with open(f"tmp_result_{TASK}min.pkl", "wb") as f:
                 pickle.dump(main_result, f)
 
 

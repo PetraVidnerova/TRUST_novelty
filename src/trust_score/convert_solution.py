@@ -9,6 +9,9 @@ df = pd.DataFrame.from_dict(result, orient='index')
 df["PaperProjectID"] = df.index
 print(df)
 
+df = df[df['titles_only'] == False]
+
+
 df_orig = pd.read_csv("../../data/soutez/cell.csv")
 print(df_orig)
 
@@ -21,4 +24,4 @@ df_merged = df_merged[["PaperProjectID", "OpenAlexID (as URL)", "score"]]
 print(df_merged)
 print(df_merged.columns)
 
-df_merged.to_csv("cell_eval_results.csv", index=False)
+df_merged.to_csv("cell_eval_results_abstracts_only.csv", index=False)
