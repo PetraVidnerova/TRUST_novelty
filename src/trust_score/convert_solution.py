@@ -2,7 +2,7 @@ import pickle
 import pandas as pd
 
 
-with open("tmp_result_cell.pkl", "rb") as f:
+with open("tmp_result_cellref.pkl", "rb") as f:
     result = pickle.load(f)
 
 df = pd.DataFrame.from_dict(result, orient='index')
@@ -10,7 +10,7 @@ df["PaperProjectID"] = df.index
 print(df)
 
 df = df[df['titles_only'] == False]
-
+#df = df[df['n_related'] >= 9]
 
 df_orig = pd.read_csv("../../data/soutez/cell.csv")
 print(df_orig)

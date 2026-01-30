@@ -1,10 +1,10 @@
-import logging 
-import pickle 
+import logging
+import pickle
 from pathlib import Path
 import requests
 
 import pandas as pd
-import tqdm 
+import tqdm
 import torch
 import torch.nn.functional as F
 from tenacity import retry, stop_after_attempt, retry_if_exception_type, before_sleep_log
@@ -17,6 +17,7 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(levelname)s (%(module)s)] %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
 
 @retry(
     stop=stop_after_attempt(5),
@@ -39,11 +40,10 @@ class Evaluator():
 
     def __init__(self, datadir):
         # self load saved abstracts
-        self.storage_path = Path(datadir) / "titles_abstracts.pickle"
-        self.titles_abstracts = self._load_abstracts(datadir) 
+        self.storage_path = Path(datadir) / "titles_abstracts_ref.pickle"
+        self.titles_abstracts = self._load_abstracts(datadir)
         self.emb_model = Embeddings()
-        self.titles_only = False    
-
+        self.titles_only = False
 
     def _load_abstracts(self, datadir):
         if self.storage_path.exists():
@@ -69,13 +69,14 @@ class Evaluator():
             return None
 
         # Request ONLY the needed fields
+        related_works_field = "referenced_works" 
         if include_abstract:
             params = {
-                "select": "abstract_inverted_index,related_works"
+                "select": f"publication_date,abstract_inverted_index,{related_works_field}"
             }
         else:
             params = {
-                "select": "related_works"
+                "select": f"publication_date,{related_works_field}"
             }
 
             
@@ -88,7 +89,7 @@ class Evaluator():
         if data is None:
             return None
         
-        related_works = data.get("related_works", [])
+        related_works = data.get(related_works_field, [])
         result = {
             "related_works": related_works
         }
@@ -99,21 +100,23 @@ class Evaluator():
             )
             result["abstract"] = abstract 
 
+        pub_date = data.get('publication_date', None)
+        result["pub_date"] = pub_date
         
         return result
 
-    def _get_data_for_related(self, works):
+    def _get_data_for_related_small(self, works):
         """ Fetch title and abstract for a list of OpenAlex IDs. """
         OPENALEX_WORK_URL = "https://api.openalex.org/works"
 
-        assert len(works) < 200 
+        assert len(works) <= 50
         works = list(map(eat_prefix, works))
         
         filter_ids = "|".join(works)
         if self.titles_only:
-            selection = "id,title"
+            selection = "publication_date,id,title"
         else:
-            selection = "id,title,abstract_inverted_index"
+            selection = "publication_date,id,title,abstract_inverted_index"
         params = {
             "filter": f"ids.openalex:{filter_ids}",
             "select": selection 
@@ -131,12 +134,26 @@ class Evaluator():
         results = {}
         for work in data.get("results", []):
             results[work["id"]] = {
+                "pub_date": work.get("pub_date", None),
                 "title": work.get("title", None),
                 "abstract": create_abstract(
                     work.get("abstract_inverted_index", None)
                 )
             }
         return results 
+    
+    def _get_data_for_related(self, works):
+
+        chunks = [works[i:i+10] for i in range(0, len(works), 10)]
+        all_results = {}
+    
+        for chunk in chunks:
+            data = self._get_data_for_related_small(chunk)
+            if data is None:
+                continue  
+            all_results.update(data)
+
+        return all_results 
         
     # def _get_abstract(self, pid, alexid, title):
     #     if pid in self.abstracts:
@@ -162,7 +179,7 @@ class Evaluator():
         for rel in related:
             results.append(self._cosine_similarity(target, rel))
         #result /= related.shape[0]
-        return max(results)
+        return sum(results)/len(results)
     
     def gather_data(self, alexid, title=None, abstract=None):
         
@@ -181,11 +198,12 @@ class Evaluator():
         if not isinstance(target_abstract, str):
             target_abstract = None
         related_works = target_data.get("related_works", None)
+        pub_date = target_data["pub_date"] 
 
         if related_works is None:
             # todo: find related works manualy based on topics
             return None, None, None 
-
+        
         if target_abstract is None:
             self.titles_only = True
         else:
@@ -193,6 +211,8 @@ class Evaluator():
 
 
         related_data = self._get_data_for_related(related_works)
+        if related_data is None:
+            return None, None, None 
         # extract titles and abstract
         # if title does not exists, we ignore the item
         titles = [item["title"] for item in related_data.values() if item["title"] is not None]
@@ -257,7 +277,7 @@ def main():
     TASK = "cell"
     df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
-    result_filename = Path(f"tmp_result_{TASK}max.pkl")
+    result_filename = Path(f"tmp_result_{TASK}ref.pkl")
     if result_filename.exists():
         with open(result_filename, "rb") as f:
             main_result = pickle.load(f)
@@ -285,10 +305,11 @@ def main():
         if result is None:
             result = {"score": -1.0, "titles_only": None, "message": "no_data"}
         main_result[pid] = result
-        print(pid, result["score"], result["titles_only"], result["message"])
+        print(pid, result["score"], result["titles_only"], result["message"],
+              result.get("n_related", 0))
 
         if i % 10 == 0:
-            with open(f"tmp_result_{TASK}max.pkl", "wb") as f:
+            with open(f"tmp_result_{TASK}ref.pkl", "wb") as f:
                 pickle.dump(main_result, f)
 
 
