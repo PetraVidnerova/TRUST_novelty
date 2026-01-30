@@ -26,6 +26,7 @@ logger.addHandler(handler)
     retry_error_callback=lambda _: None,
 )
 def send_request(url, params, timeout):
+    params["mailto"] = "petra@cs.cas.cz",
     response = requests.get(
         url,
         params=params,
@@ -105,54 +106,52 @@ class Evaluator():
         
         return result
 
-    def _get_data_for_related_small(self, works):
-        """ Fetch title and abstract for a list of OpenAlex IDs. """
-        OPENALEX_WORK_URL = "https://api.openalex.org/works"
+    def _get_data_for_related_single(self, work):
+        """ Fetch title and abstract for a an OpenAlex ID. """
+        OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
 
-        assert len(works) <= 50
-        works = list(map(eat_prefix, works))
+        work = eat_prefix(work)
+        if not work.startswith("W"):
+            logger.error(f"Invalid OpenAlex ID: {alexid}")
+            return None
         
-        filter_ids = "|".join(works)
+    
         if self.titles_only:
             selection = "publication_date,id,title"
         else:
             selection = "publication_date,id,title,abstract_inverted_index"
         params = {
-            "filter": f"ids.openalex:{filter_ids}",
             "select": selection 
         }
     
 
         data = send_request(
-            OPENALEX_WORK_URL,
+            OPENALEX_WORK_URL.format(work),
             params,
             30
         )
         if data is None:
             return None
         
-        results = {}
-        for work in data.get("results", []):
-            results[work["id"]] = {
-                "pub_date": work.get("pub_date", None),
-                "title": work.get("title", None),
-                "abstract": create_abstract(
-                    work.get("abstract_inverted_index", None)
-                )
-            }
-        return results 
+        result = {
+            "pub_date": data.get("pub_date", None),
+            "title": data.get("title", None),
+            "abstract": create_abstract(
+                data.get("abstract_inverted_index", None)
+            )
+        }
+        return result 
     
     def _get_data_for_related(self, works):
 
-        chunks = [works[i:i+10] for i in range(0, len(works), 10)]
         all_results = {}
-    
-        for chunk in chunks:
-            data = self._get_data_for_related_small(chunk)
-            if data is None:
-                continue  
-            all_results.update(data)
 
+        for work in works:
+            res = self._get_data_for_related_single(work)
+            if res is None:
+                continue
+            all_results[work] = res
+            
         return all_results 
         
     # def _get_abstract(self, pid, alexid, title):
