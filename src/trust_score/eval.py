@@ -7,10 +7,10 @@ import pandas as pd
 import tqdm
 import torch
 import torch.nn.functional as F
-from tenacity import retry, stop_after_attempt, retry_if_exception_type, before_sleep_log
 
-from utils import download_abstract, get_related_works, create_abstract, eat_prefix
+from utils import create_abstract, eat_prefix, send_request
 from embeddings import Embeddings
+from related import RelatedAbstracts, create_pub_date
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
@@ -21,53 +21,13 @@ logger.addHandler(handler)
 OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
 
 
-@retry(
-    stop=stop_after_attempt(5),
-    retry=retry_if_exception_type(requests.exceptions.HTTPError),
-    before_sleep=before_sleep_log(logger, logging.WARNING),
-    retry_error_callback=lambda _: None,
-)
-def send_request(url, params, timeout):
-    params["mailto"] = "petra@cs.cas.cz"
-    response = requests.get(
-        url,
-        params=params,
-        timeout=timeout
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data
-
-def find_related_works(work):
-    work = eat_prefix(work)
-    if not work.startwith("W"):
-        logger.error(f"Invalid OpenAlex ID: {alexid}")
-        return None
-
-    # first determine the topic
-    params = {
-        "select": f"primary_topic"
-    }
-
-    data = send_request(
-        OPENALEX_WORK_URL.format(work),
-        params,
-        30
-    )
-    if data is None:
-        raise NotImplementedError
-    
-
-    
-    
-
-
 class Evaluator():
     def __init__(self, datadir):
         # self load saved abstracts
         self.storage_path = Path(datadir) / "titles_abstracts_debug.pickle"
         self.titles_abstracts = self._load_abstracts(datadir)
-        self.emb_model = Embeddings()
+    #  self.emb_model = Embeddings()
+        self.emb_model = None
         self.titles_only = False
 
     def _load_abstracts(self, datadir):
@@ -224,70 +184,76 @@ class Evaluator():
         pub_date = target_data["pub_date"] 
         pub_year = target_data["pub_year"]
 
-        if related_works is None:
-            # todo: find related works manualy based on topics
-            return None, None, None 
+        related_works_instance = RelatedAbstracts(  
+            pub_date=create_pub_date(pub_year, pub_date, target=True),
+            alexid=alexid,
+            init_list=related_works
+        )
+        related_works_instance.populate()
+
+        print(related_works_instance.size())
+
         
-        if target_abstract is None:
-            self.titles_only = True
-        else:
-            self.titles_only = False
+        # if target_abstract is None:
+        #     self.titles_only = True
+        # else:
+        #     self.titles_only = False
 
-        related_data = self._get_data_for_related(related_works)
-        if related_data is None:
-            return None, None, None 
-
-        if not pub_year:
-            return None, None, None
-        # filter out items published after the target paper
-        related_data = {
-            k: v 
-            for k, v in related_data.items()
-            if (
-                    (v['pub_year'] is not None and v['pub_year'] < pub_year)
-                    or (v["pub_date"] is not None and v["pub_date"] < pub_date)
-            )
-        }      
-        if len(related_data) == 0:
-            logger.warning("OH NO RELATED DATA LENGTH ZERO   ")
-            return None, None, None 
+        # related_data = self._get_data_for_related(related_works)
         
-        # extract titles and abstract
-        # if title does not exists, we ignore the item
-        titles = [item["title"] for item in related_data.values() if item["title"] is not None]
-        if not titles:
-            logger.warning(f"No related titles found for {alexid}.")
-            return None, None, None
-        if not self.titles_only:
-            abstracts = [item["abstract"] for item in related_data.values() if item["title"] is not None]
-            n_abstracts = len([a for a in abstracts if a is not None])
+        # if related_data is not None and pub_year is not None:
 
-            # we use abstracts only if we have at least 5
-            if n_abstracts < 3:
-                self.titles_only = True
-                logger.warning(f"Not enough abstracts ({n_abstracts}) for {alexid}, using titles only.")
-            else:
-                #keep only those tuples where we have both of them (abstract is not None) 
-                related_titles_abstracts = zip(titles, abstracts)
-                related_titles_abstracts = [(t, a) for (t, a) in related_titles_abstracts if a is not None and isinstance(a, str)]
+        #     # filter out items published after the target paper
+        #     related_data = {
+        #         k: v 
+        #         for k, v in related_data.items()
+        #         if (
+        #                 (v['pub_year'] is not None and v['pub_year'] < pub_year)
+        #                 or (v["pub_date"] is not None and v["pub_date"] < pub_date)
+        #         )   
+        #     }
 
-        if self.titles_only:
-            related_titles_abstracts = [(t, None) for t in titles]
 
-        if len(related_titles_abstracts) == 0:
-            logger.warning(f"No related titles/abstracts found for {alexid}.")
-            return None, None, None
+        # if len(related_data) == 0:
+        #     logger.warning("OH NO RELATED DATA LENGTH ZERO   ")
+        #     return None, None, None 
+        
+        # # extract titles and abstract
+        # # if title does not exists, we ignore the item
+        # titles = [item["title"] for item in related_data.values() if item["title"] is not None]
+        # if not titles:
+        #     logger.warning(f"No related titles found for {alexid}.")
+        #     return None, None, None
+        # if not self.titles_only:
+        #     abstracts = [item["abstract"] for item in related_data.values() if item["title"] is not None]
+        #     n_abstracts = len([a for a in abstracts if a is not None])
 
-        self.titles_abstracts[alexid] = {
-            "title": target_title,
-            "abstract": target_abstract,
-            "titles_abstracts": related_titles_abstracts,
-            "titles_only": self.titles_only
-        }
-        with open(self.storage_path, "wb") as f:
-            pickle.dump(self.titles_abstracts, f)
+        #     # we use abstracts only if we have at least 5
+        #     if n_abstracts < 3:
+        #         self.titles_only = True
+        #         logger.warning(f"Not enough abstracts ({n_abstracts}) for {alexid}, using titles only.")
+        #     else:
+        #         #keep only those tuples where we have both of them (abstract is not None) 
+        #         related_titles_abstracts = zip(titles, abstracts)
+        #         related_titles_abstracts = [(t, a) for (t, a) in related_titles_abstracts if a is not None and isinstance(a, str)]
 
-        return target_title, target_abstract, related_titles_abstracts
+        # if self.titles_only:
+        #     related_titles_abstracts = [(t, None) for t in titles]
+
+        # if len(related_titles_abstracts) == 0:
+        #     logger.warning(f"No related titles/abstracts found for {alexid}.")
+        #     return None, None, None
+
+        # self.titles_abstracts[alexid] = {
+        #     "title": target_title,
+        #     "abstract": target_abstract,
+        #     "titles_abstracts": related_titles_abstracts,
+        #     "titles_only": self.titles_only
+        # }
+        # with open(self.storage_path, "wb") as f:
+        #     pickle.dump(self.titles_abstracts, f)
+
+        # return target_title, target_abstract, related_titles_abstracts
     
     def eval(self, pid, doi, alexid, title, abstract=None):
         target_title, target_abstract, related_titles_abstracts = self.gather_data(alexid, title=title, abstract=abstract)

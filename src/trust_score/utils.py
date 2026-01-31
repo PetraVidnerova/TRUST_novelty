@@ -1,9 +1,36 @@
 import logging 
-import pyalex
 import requests
 import time
 
+import pyalex
+from tenacity import (
+    retry, stop_after_attempt, retry_if_exception_type, 
+    before_sleep_log, wait_random_exponential
+)
+
 logger = logging.getLogger("__main__")
+
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_random_exponential(multiplier=1, max=10),
+    retry=retry_if_exception_type(requests.exceptions.HTTPError),
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    retry_error_callback=lambda _: None
+)
+def send_request(url, params, timeout):
+    params["mailto"] = "petra@cs.cas.cz"
+    response = requests.get(
+        url,
+        params=params,
+        timeout=timeout
+    )
+    if response.status_code == 404: 
+        logger.warning(f"Data not found at {url}.")
+        return None
+    response.raise_for_status()
+    data = response.json()
+    return data
+
 
 
 def create_abstract(abstract_index):
