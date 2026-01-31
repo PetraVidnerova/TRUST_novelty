@@ -18,6 +18,8 @@ formatter = logging.Formatter("[%(levelname)s (%(module)s)] %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
+
 
 @retry(
     stop=stop_after_attempt(5),
@@ -36,9 +38,31 @@ def send_request(url, params, timeout):
     data = response.json()
     return data
 
+def find_related_works(work):
+    work = eat_prefix(work)
+    if not work.startwith("W"):
+        logger.error(f"Invalid OpenAlex ID: {alexid}")
+        return None
+
+    # first determine the topic
+    params = {
+        "select": f"primary_topic"
+    }
+
+    data = send_request(
+        OPENALEX_WORK_URL.format(work),
+        params,
+        30
+    )
+    if data is None:
+        raise NotImplementedError
+    
+
+    
+    
+
 
 class Evaluator():
-
     def __init__(self, datadir):
         # self load saved abstracts
         self.storage_path = Path(datadir) / "titles_abstracts_debug.pickle"
@@ -62,7 +86,6 @@ class Evaluator():
         """
         Fetch only abstract and related works metadata for a given OpenAlex ID.
         """
-        OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
 
         alexid = eat_prefix(alexid)
         if not alexid.startswith("W"):
@@ -109,7 +132,6 @@ class Evaluator():
 
     def _get_data_for_related_single(self, work):
         """ Fetch title and abstract for a an OpenAlex ID. """
-        OPENALEX_WORK_URL = "https://api.openalex.org/works/{}"
 
         work = eat_prefix(work)
         if not work.startswith("W"):
@@ -135,6 +157,7 @@ class Evaluator():
             return None
         
         result = {
+            "pub_year": data.get("publication_year", None),
             "pub_date": data.get("pub_date", None),
             "title": data.get("title", None),
             "abstract": create_abstract(
@@ -214,6 +237,8 @@ class Evaluator():
         if related_data is None:
             return None, None, None 
 
+        if not pub_year:
+            return None, None, None
         # filter out items published after the target paper
         related_data = {
             k: v 
@@ -266,6 +291,11 @@ class Evaluator():
     
     def eval(self, pid, doi, alexid, title, abstract=None):
         target_title, target_abstract, related_titles_abstracts = self.gather_data(alexid, title=title, abstract=abstract)
+
+        if related_titles_abstracts:
+            print(self.titles_only, len(related_titles_abstracts))
+        return 
+
         
         if target_title is None:
             return {
@@ -300,7 +330,7 @@ def main():
     TASK = "cell"
     df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
-    result_filename = Path(f"tmp_result_{TASK}debug.pkl")
+    result_filename = Path(f"tmp_result_{TASK}debug2.pkl")
     if result_filename.exists():
         with open(result_filename, "rb") as f:
             main_result = pickle.load(f)
@@ -324,7 +354,8 @@ def main():
             result = None
         else:    
             result = evaluator.eval(pid, doi, alexid, title, abstract)
-
+        continue
+            
         if result is None:
             result = {"score": -1.0, "titles_only": None, "message": "no_data"}
         main_result[pid] = result
@@ -332,7 +363,7 @@ def main():
               result.get("n_related", 0))
 
         if i % 10 == 0:
-            with open(f"tmp_result_{TASK}debug.pkl", "wb") as f:
+            with open(f"tmp_result_{TASK}debug2.pkl", "wb") as f:
                 pickle.dump(main_result, f)
 
 
