@@ -29,7 +29,7 @@ logger.addHandler(handler)
     retry_error_callback=lambda _: None,
 )
 def send_request(url, params, timeout):
-    params["mailto"] = "petra@cs.cas.cz",
+    params["mailto"] = "petra@cs.cas.cz"
     response = requests.get(
         url,
         params=params,
@@ -75,14 +75,14 @@ class Evaluator():
             return None
 
         # Request ONLY the needed fields
-        related_works_field = "referenced_works" 
+        related_works_field = "related_works" 
         if include_abstract:
             params = {
-                "select": f"publication_date,abstract_inverted_index,{related_works_field}"
+                "select": f"publication_year,publication_date,abstract_inverted_index,{related_works_field}"
             }
         else:
             params = {
-                "select": f"publication_date,{related_works_field}"
+                "select": f"publication_year,publication_date,{related_works_field}"
             }
 
             
@@ -108,6 +108,7 @@ class Evaluator():
 
         pub_date = data.get('publication_date', None)
         result["pub_date"] = pub_date
+        result["pub_year"] = data.get('publication_year', None)
         
         return result
 
@@ -122,9 +123,9 @@ class Evaluator():
         
     
         if self.titles_only:
-            selection = "publication_date,id,title"
+            selection = "publication_year,publication_date,id,title"
         else:
-            selection = "publication_date,id,title,abstract_inverted_index"
+            selection = "publication_year,publication_date,id,title,abstract_inverted_index"
         params = {
             "select": selection 
         }
@@ -206,6 +207,7 @@ class Evaluator():
             target_abstract = None
         related_works = target_data.get("related_works", None)
         pub_date = target_data["pub_date"] 
+        pub_year = target_data["pub_year"]
 
         if related_works is None:
             # todo: find related works manualy based on topics
@@ -216,21 +218,37 @@ class Evaluator():
         else:
             self.titles_only = False
 
-
         related_data = self._get_data_for_related(related_works)
         if related_data is None:
             return None, None, None 
+
+        # filter out items published after the target paper
+        related_data = {
+            k: v 
+            for k, v in related_data.items()
+            if (
+                    (v['pub_year'] is not None and v['pub_year'] < pub_year)
+                    or (v["pub_date"] is not None and v["pub_date"] < pub_date)
+            )
+        }      
+        if len(related_data) == 0:
+            logger.warning("OH NO RELATED DATA LENGTH ZERO   ")
+            return None, None, None 
+        
         # extract titles and abstract
         # if title does not exists, we ignore the item
         titles = [item["title"] for item in related_data.values() if item["title"] is not None]
+        if not titles:
+            logger.warning(f"No related titles found for {alexid}.")
+            return None, None, None
         if not self.titles_only:
             abstracts = [item["abstract"] for item in related_data.values() if item["title"] is not None]
             n_abstracts = len([a for a in abstracts if a is not None])
 
             # we use abstracts only if we have at least 5
-            if n_abstracts < 5:
+            if n_abstracts < 3:
                 self.titles_only = True
-                print(f"Not enough abstracts ({n_abstracts}) for {alexid}, using titles only.")
+                logger.warning(f"Not enough abstracts ({n_abstracts}) for {alexid}, using titles only.")
             else:
                 #keep only those tuples where we have both of them (abstract is not None) 
                 related_titles_abstracts = zip(titles, abstracts)
@@ -238,6 +256,10 @@ class Evaluator():
 
         if self.titles_only:
             related_titles_abstracts = [(t, None) for t in titles]
+
+        if len(related_titles_abstracts) == 0:
+            logger.warning(f"No related titles/abstracts found for {alexid}.")
+            return None, None, None
 
         self.titles_abstracts[alexid] = {
             "title": target_title,
@@ -261,6 +283,8 @@ class Evaluator():
                 "titles_only": None,
                 "message": "no_data"
             }
+        
+        #print("===>",target_title, target_abstract, len(related_titles_abstracts))
 
         target_emb = self.emb_model.embed([(target_title, target_abstract)], titles_only=self.titles_only)
         related_embs = self.emb_model.embed(related_titles_abstracts, titles_only=self.titles_only)
@@ -286,7 +310,7 @@ def main():
     #TASK = "cell" 
     #df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
-    result_filename = Path(f"tmp_result_{TASK}ref.pkl")
+    result_filename = Path(f"tmp_result_{TASK}debug.pkl")
     if result_filename.exists():
         with open(result_filename, "rb") as f:
             main_result = pickle.load(f)
