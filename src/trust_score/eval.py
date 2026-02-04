@@ -4,10 +4,12 @@ from pathlib import Path
 import requests
 
 import pandas as pd
+import numpy as np
 import tqdm
 import torch
 import torch.nn.functional as F
 from tenacity import retry, stop_after_attempt, retry_if_exception_type, before_sleep_log
+from tenacity import wait_random_exponential
 
 from utils import download_abstract, get_related_works, create_abstract, eat_prefix
 from embeddings import Embeddings
@@ -21,6 +23,7 @@ logger.addHandler(handler)
 
 @retry(
     stop=stop_after_attempt(5),
+    wait=wait_random_exponential(multiplier=1, max=10),
     retry=retry_if_exception_type(requests.exceptions.HTTPError),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     retry_error_callback=lambda _: None,
@@ -32,6 +35,8 @@ def send_request(url, params, timeout):
         params=params,
         timeout=timeout
     )
+    if response.status_code == 404:
+        return None # no need to retry
     response.raise_for_status()
     data = response.json()
     return data
@@ -41,7 +46,7 @@ class Evaluator():
 
     def __init__(self, datadir):
         # self load saved abstracts
-        self.storage_path = Path(datadir) / "titles_abstracts_ref.pickle"
+        self.storage_path = Path(datadir) / "soutez_titles_abstracts_ref.pickle"
         self.titles_abstracts = self._load_abstracts(datadir)
         self.emb_model = Embeddings()
         self.titles_only = False
@@ -178,8 +183,11 @@ class Evaluator():
         for rel in related:
             results.append(self._cosine_similarity(target, rel))
         #result /= related.shape[0]
-        return sum(results)/len(results)
-    
+        #return sum(results)/len(results)
+        #return max(results)
+        #results = [r for r in results if r > np.quantile(results, 0.1)]
+        return np.mean(results)
+            
     def gather_data(self, alexid, title=None, abstract=None):
         
         if alexid in self.titles_abstracts:
@@ -244,8 +252,9 @@ class Evaluator():
     
     def eval(self, pid, doi, alexid, title, abstract=None):
         target_title, target_abstract, related_titles_abstracts = self.gather_data(alexid, title=title, abstract=abstract)
+
         
-        if target_title is None:
+        if target_title is None or not related_titles_abstracts:
             return {
                 "score": -1.0,
                 "n_related": 0,
@@ -272,9 +281,10 @@ def main():
     DOI = 'DOI (as URL)'
     OPENALEXID = 'OpenAlexID (as URL)'
     
-    #df = pd.read_csv("../../data/soutez/Metadata file COMBINED.csv")
-    TASK = "cell"
-    df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
+    df = pd.read_csv("../../data/soutez/Metadata file COMBINED.csv")
+    TASK = "soutez"
+    #TASK = "cell" 
+    #df = pd.read_csv(f"../../data/soutez/{TASK}.csv")
 
     result_filename = Path(f"tmp_result_{TASK}ref.pkl")
     if result_filename.exists():
@@ -308,9 +318,11 @@ def main():
               result.get("n_related", 0))
 
         if i % 10 == 0:
-            with open(f"tmp_result_{TASK}ref.pkl", "wb") as f:
+            with open(result_filename, "wb") as f:
                 pickle.dump(main_result, f)
 
+    with open(result_filename, "wb") as f:
+        pickle.dump(main_result, f)
 
 if __name__ == "__main__":
     main()
